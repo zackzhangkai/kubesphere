@@ -189,6 +189,22 @@ func AddToContainer(c *restful.Container) error {
 		Returns(http.StatusOK, "ok", appHealthResponse{}).
 		Writes(appHealthResponse{})).Produces(restful.MIME_JSON)
 
+	// Get app health
+	webservice.Route(webservice.GET("/namespaces/{namespace}/applications/{app}/graph").
+		To(getAppGraph).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Doc("Get application graph").
+		Param(webservice.PathParameter("app", "app name").Required(true)).
+		Param(webservice.PathParameter("namespace", "name of a namespace").Required(true)).
+		Param(webservice.QueryParameter("appenders", "Comma-separated list of Appenders to run")).
+		Param(webservice.QueryParameter("duration", "Query time-range duration")).
+		Param(webservice.QueryParameter("graphType", "Graph type").DefaultValue("app")).
+		Param(webservice.QueryParameter("groupBy", "App box grouping characteristic")).
+		Param(webservice.QueryParameter("injectServiceNodes", "Flag for injecting the requested service node between source and destination nodes")).
+		Param(webservice.QueryParameter("queryTime", "the time to use for query")).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON))
+
 	// Get service health
 	webservice.Route(webservice.GET("/namespaces/{namespace}/services/{service}/health").
 		To(getServiceHealth).
