@@ -13,11 +13,15 @@ tag_for_branch() {
     if [[ "${tag}" == "master" ]]; then
         tag="latest"
     fi
+
+    if [[ "${tag}" == "CICD" ]]; then
+        tag="latest"
+    fi
     echo ${tag}
 }
 
 # push to kubespheredev with default latest tag
-REPO=${REPO:-kubespheredev}
+REPO=${REPO:-zackzhangkai}
 TAG=$(tag_for_branch $1)
 
 # Push image to dockerhub, need to support multiple push
