@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,15 +38,15 @@ type FederatedUsersGetter interface {
 
 // FederatedUserInterface has methods to work with FederatedUser resources.
 type FederatedUserInterface interface {
-	Create(*v1beta1.FederatedUser) (*v1beta1.FederatedUser, error)
-	Update(*v1beta1.FederatedUser) (*v1beta1.FederatedUser, error)
-	UpdateStatus(*v1beta1.FederatedUser) (*v1beta1.FederatedUser, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1beta1.FederatedUser, error)
-	List(opts v1.ListOptions) (*v1beta1.FederatedUserList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedUser, err error)
+	Create(ctx context.Context, federatedUser *v1beta1.FederatedUser, opts v1.CreateOptions) (*v1beta1.FederatedUser, error)
+	Update(ctx context.Context, federatedUser *v1beta1.FederatedUser, opts v1.UpdateOptions) (*v1beta1.FederatedUser, error)
+	UpdateStatus(ctx context.Context, federatedUser *v1beta1.FederatedUser, opts v1.UpdateOptions) (*v1beta1.FederatedUser, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.FederatedUser, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.FederatedUserList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedUser, err error)
 	FederatedUserExpansion
 }
 
@@ -64,20 +65,20 @@ func newFederatedUsers(c *TypesV1beta1Client, namespace string) *federatedUsers 
 }
 
 // Get takes name of the federatedUser, and returns the corresponding federatedUser object, and an error if there is any.
-func (c *federatedUsers) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedUser, err error) {
+func (c *federatedUsers) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedUser, err error) {
 	result = &v1beta1.FederatedUser{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("federatedusers").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of FederatedUsers that match those selectors.
-func (c *federatedUsers) List(opts v1.ListOptions) (result *v1beta1.FederatedUserList, err error) {
+func (c *federatedUsers) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedUserList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -88,13 +89,13 @@ func (c *federatedUsers) List(opts v1.ListOptions) (result *v1beta1.FederatedUse
 		Resource("federatedusers").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested federatedUsers.
-func (c *federatedUsers) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *federatedUsers) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,87 +106,90 @@ func (c *federatedUsers) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("federatedusers").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a federatedUser and creates it.  Returns the server's representation of the federatedUser, and an error, if there is any.
-func (c *federatedUsers) Create(federatedUser *v1beta1.FederatedUser) (result *v1beta1.FederatedUser, err error) {
+func (c *federatedUsers) Create(ctx context.Context, federatedUser *v1beta1.FederatedUser, opts v1.CreateOptions) (result *v1beta1.FederatedUser, err error) {
 	result = &v1beta1.FederatedUser{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("federatedusers").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedUser).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a federatedUser and updates it. Returns the server's representation of the federatedUser, and an error, if there is any.
-func (c *federatedUsers) Update(federatedUser *v1beta1.FederatedUser) (result *v1beta1.FederatedUser, err error) {
+func (c *federatedUsers) Update(ctx context.Context, federatedUser *v1beta1.FederatedUser, opts v1.UpdateOptions) (result *v1beta1.FederatedUser, err error) {
 	result = &v1beta1.FederatedUser{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("federatedusers").
 		Name(federatedUser.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedUser).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *federatedUsers) UpdateStatus(federatedUser *v1beta1.FederatedUser) (result *v1beta1.FederatedUser, err error) {
+func (c *federatedUsers) UpdateStatus(ctx context.Context, federatedUser *v1beta1.FederatedUser, opts v1.UpdateOptions) (result *v1beta1.FederatedUser, err error) {
 	result = &v1beta1.FederatedUser{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("federatedusers").
 		Name(federatedUser.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedUser).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the federatedUser and deletes it. Returns an error if one occurs.
-func (c *federatedUsers) Delete(name string, options *v1.DeleteOptions) error {
+func (c *federatedUsers) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("federatedusers").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *federatedUsers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *federatedUsers) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("federatedusers").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched federatedUser.
-func (c *federatedUsers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedUser, err error) {
+func (c *federatedUsers) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedUser, err error) {
 	result = &v1beta1.FederatedUser{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("federatedusers").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

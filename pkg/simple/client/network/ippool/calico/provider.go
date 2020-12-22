@@ -17,6 +17,7 @@ limitations under the License.
 package calico
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -24,7 +25,7 @@ import (
 	"github.com/projectcalico/libcalico-go/lib/backend/model"
 	cnet "github.com/projectcalico/libcalico-go/lib/net"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
@@ -56,8 +57,8 @@ type provider struct {
 
 func (c provider) CreateIPPool(pool *v1alpha1.IPPool) error {
 	calicoPool := &calicov3.IPPool{
-		TypeMeta: v1.TypeMeta{},
-		ObjectMeta: v1.ObjectMeta{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
 			Name: pool.Name,
 		},
 		Spec: v3.IPPoolSpec{
@@ -75,7 +76,7 @@ func (c provider) CreateIPPool(pool *v1alpha1.IPPool) error {
 		klog.Warningf("cannot set reference for calico ippool %s, err=%v", pool.Name, err)
 	}
 
-	_, err = c.client.CrdCalicov3().IPPools().Create(calicoPool)
+	_, err = c.client.CrdCalicov3().IPPools().Create(context.Background(), calicoPool, metav1.CreateOptions{})
 	if k8serrors.IsAlreadyExists(err) {
 		return nil
 	}
@@ -90,7 +91,7 @@ func (c provider) UpdateIPPool(pool *v1alpha1.IPPool) error {
 func (c provider) GetIPPoolStats(pool *v1alpha1.IPPool) (*v1alpha1.IPPool, error) {
 	stats := &v1alpha1.IPPool{}
 
-	calicoPool, err := c.client.CrdCalicov3().IPPools().Get(pool.Name, v1.GetOptions{})
+	calicoPool, err := c.client.CrdCalicov3().IPPools().Get(context.Background(), pool.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +129,7 @@ func setBlockAffiDeletion(c calicoset.Interface, blockAffi *calicov3.BlockAffini
 	}
 
 	blockAffi.Spec.State = string(model.StatePendingDeletion)
-	_, err := c.CrdCalicov3().BlockAffinities().Update(blockAffi)
+	_, err := c.CrdCalicov3().BlockAffinities().Update(context.Background(), blockAffi, metav1.UpdateOptions{})
 	return err
 }
 
@@ -136,13 +137,13 @@ func deleteBlockAffi(c calicoset.Interface, blockAffi *calicov3.BlockAffinity) e
 	trueStr := fmt.Sprintf("%t", true)
 	if blockAffi.Spec.Deleted != trueStr {
 		blockAffi.Spec.Deleted = trueStr
-		_, err := c.CrdCalicov3().BlockAffinities().Update(blockAffi)
+		_, err := c.CrdCalicov3().BlockAffinities().Update(context.Background(), blockAffi, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
 	}
 
-	err := c.CrdCalicov3().BlockAffinities().Delete(blockAffi.Name, &v1.DeleteOptions{})
+	err := c.CrdCalicov3().BlockAffinities().Delete(context.Background(), blockAffi.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -153,7 +154,7 @@ func deleteBlockAffi(c calicoset.Interface, blockAffi *calicov3.BlockAffinity) e
 func (c provider) doBlockAffis(pool *calicov3.IPPool, do func(calicoset.Interface, *calicov3.BlockAffinity) error) error {
 	_, cidrNet, _ := cnet.ParseCIDR(pool.Spec.CIDR)
 
-	blockAffis, err := c.client.CrdCalicov3().BlockAffinities().List(v1.ListOptions{})
+	blockAffis, err := c.client.CrdCalicov3().BlockAffinities().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -176,7 +177,7 @@ func (c provider) doBlockAffis(pool *calicov3.IPPool, do func(calicoset.Interfac
 func (c provider) listBlocks(pool *calicov3.IPPool) ([]calicov3.IPAMBlock, error) {
 	_, cidrNet, _ := cnet.ParseCIDR(pool.Spec.CIDR)
 
-	blocks, err := c.client.CrdCalicov3().IPAMBlocks().List(v1.ListOptions{})
+	blocks, err := c.client.CrdCalicov3().IPAMBlocks().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +214,7 @@ func deleteBlock(c calicoset.Interface, block *calicov3.IPAMBlock) error {
 	if block.Empty() {
 		if !block.Spec.Deleted {
 			block.Spec.Deleted = true
-			_, err := c.CrdCalicov3().IPAMBlocks().Update(block)
+			_, err := c.CrdCalicov3().IPAMBlocks().Update(context.Background(), block, metav1.UpdateOptions{})
 			if err != nil {
 				return err
 			}
@@ -221,7 +222,7 @@ func deleteBlock(c calicoset.Interface, block *calicov3.IPAMBlock) error {
 	} else {
 		return ErrBlockInuse
 	}
-	err := c.CrdCalicov3().IPAMBlocks().Delete(block.Name, &v1.DeleteOptions{})
+	err := c.CrdCalicov3().IPAMBlocks().Delete(context.Background(), block.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -238,7 +239,7 @@ func (c provider) DeleteIPPool(pool *v1alpha1.IPPool) (bool, error) {
 	// -  delete the pool
 
 	// Get the pool so that we can find the CIDR associated with it.
-	calicoPool, err := c.client.CrdCalicov3().IPPools().Get(pool.Name, v1.GetOptions{})
+	calicoPool, err := c.client.CrdCalicov3().IPPools().Get(context.Background(), pool.Name, metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -247,7 +248,7 @@ func (c provider) DeleteIPPool(pool *v1alpha1.IPPool) (bool, error) {
 	if !calicoPool.Spec.Disabled {
 		calicoPool.Spec.Disabled = true
 
-		calicoPool, err = c.client.CrdCalicov3().IPPools().Update(calicoPool)
+		calicoPool, err = c.client.CrdCalicov3().IPPools().Update(context.Background(), calicoPool, metav1.UpdateOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -284,7 +285,7 @@ func (c provider) DeleteIPPool(pool *v1alpha1.IPPool) (bool, error) {
 	}
 
 	//delete calico ippool
-	err = c.client.CrdCalicov3().IPPools().Delete(calicoPool.Name, &v1.DeleteOptions{})
+	err = c.client.CrdCalicov3().IPPools().Delete(context.Background(), calicoPool.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -295,13 +296,13 @@ func (c provider) DeleteIPPool(pool *v1alpha1.IPPool) (bool, error) {
 
 //Synchronizing address pools at boot time
 func (c provider) syncIPPools() error {
-	calicoPools, err := c.client.CrdCalicov3().IPPools().List(v1.ListOptions{})
+	calicoPools, err := c.client.CrdCalicov3().IPPools().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		klog.V(4).Infof("syncIPPools: cannot list calico ippools, err=%v", err)
 		return err
 	}
 
-	pools, err := c.ksclient.NetworkV1alpha1().IPPools().List(v1.ListOptions{})
+	pools, err := c.ksclient.NetworkV1alpha1().IPPools().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		klog.V(4).Infof("syncIPPools: cannot list kubesphere ippools, err=%v", err)
 		return err
@@ -315,8 +316,8 @@ func (c provider) syncIPPools() error {
 	for _, calicoPool := range calicoPools.Items {
 		if _, ok := existPools[calicoPool.Name]; !ok {
 			pool := &v1alpha1.IPPool{
-				TypeMeta: v1.TypeMeta{},
-				ObjectMeta: v1.ObjectMeta{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
 					Name: calicoPool.Name,
 				},
 				Spec: v1alpha1.IPPoolSpec{
@@ -328,7 +329,7 @@ func (c provider) syncIPPools() error {
 				Status: v1alpha1.IPPoolStatus{},
 			}
 
-			_, err = c.ksclient.NetworkV1alpha1().IPPools().Create(pool)
+			_, err = c.ksclient.NetworkV1alpha1().IPPools().Create(context.Background(), pool, metav1.CreateOptions{})
 			if err != nil {
 				klog.V(4).Infof("syncIPPools: cannot create kubesphere ippools, err=%v", err)
 				return err
@@ -340,7 +341,7 @@ func (c provider) syncIPPools() error {
 }
 
 func (c provider) SyncStatus(stopCh <-chan struct{}, q workqueue.RateLimitingInterface) error {
-	blockWatch, err := c.client.CrdCalicov3().IPAMBlocks().Watch(v1.ListOptions{})
+	blockWatch, err := c.client.CrdCalicov3().IPAMBlocks().Watch(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -367,7 +368,7 @@ func (c provider) SyncStatus(stopCh <-chan struct{}, q workqueue.RateLimitingInt
 					continue
 				}
 
-				pools, err := c.ksclient.NetworkV1alpha1().IPPools().List(v1.ListOptions{})
+				pools, err := c.ksclient.NetworkV1alpha1().IPPools().List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					continue
 				}
@@ -380,7 +381,7 @@ func (c provider) SyncStatus(stopCh <-chan struct{}, q workqueue.RateLimitingInt
 						block.Labels = map[string]string{
 							v1alpha1.IPPoolNameLabel: pool.Name,
 						}
-						c.client.CrdCalicov3().IPAMBlocks().Update(block)
+						c.client.CrdCalicov3().IPAMBlocks().Update(context.Background(), block, metav1.UpdateOptions{})
 						break
 					}
 				}

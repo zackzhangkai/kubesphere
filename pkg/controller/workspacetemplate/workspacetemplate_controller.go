@@ -18,6 +18,7 @@ package workspacetemplate
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -290,7 +291,7 @@ func (c *controller) createFederatedWorkspace(workspaceTemplate *tenantv1alpha2.
 		return err
 	}
 
-	if _, err := c.ksClient.TypesV1beta1().FederatedWorkspaces().Create(federatedWorkspace); err != nil {
+	if _, err := c.ksClient.TypesV1beta1().FederatedWorkspaces().Create(context.Background(), federatedWorkspace, metav1.CreateOptions{}); err != nil {
 		if errors.IsAlreadyExists(err) {
 			return nil
 		}
@@ -341,7 +342,7 @@ func (c *controller) createWorkspace(workspaceTemplate *tenantv1alpha2.Workspace
 		return err
 	}
 
-	_, err = c.ksClient.TenantV1alpha1().Workspaces().Create(workspace)
+	_, err = c.ksClient.TenantV1alpha1().Workspaces().Create(context.Background(), workspace, metav1.CreateOptions{})
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			return nil
@@ -354,7 +355,7 @@ func (c *controller) createWorkspace(workspaceTemplate *tenantv1alpha2.Workspace
 }
 
 func (c *controller) updateWorkspace(workspace *tenantv1alpha1.Workspace) error {
-	_, err := c.ksClient.TenantV1alpha1().Workspaces().Update(workspace)
+	_, err := c.ksClient.TenantV1alpha1().Workspaces().Update(context.Background(), workspace, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -381,7 +382,7 @@ func (c *controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 			old, err := c.workspaceRoleLister.Get(roleName)
 			if err != nil {
 				if errors.IsNotFound(err) {
-					_, err = c.ksClient.IamV1alpha2().WorkspaceRoles().Create(&role)
+					_, err = c.ksClient.IamV1alpha2().WorkspaceRoles().Create(context.Background(), &role, metav1.CreateOptions{})
 					if err != nil {
 						klog.Error(err)
 						return err
@@ -396,7 +397,7 @@ func (c *controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 				updated.Labels = role.Labels
 				updated.Annotations = role.Annotations
 				updated.Rules = role.Rules
-				_, err = c.ksClient.IamV1alpha2().WorkspaceRoles().Update(updated)
+				_, err = c.ksClient.IamV1alpha2().WorkspaceRoles().Update(context.Background(), updated, metav1.UpdateOptions{})
 				if err != nil {
 					klog.Error(err)
 					return err
@@ -410,7 +411,7 @@ func (c *controller) initRoles(workspace *tenantv1alpha2.WorkspaceTemplate) erro
 func (c *controller) resetWorkspaceOwner(workspace *tenantv1alpha2.WorkspaceTemplate) error {
 	workspace = workspace.DeepCopy()
 	workspace.Spec.Template.Spec.Manager = ""
-	_, err := c.ksClient.TenantV1alpha2().WorkspaceTemplates().Update(workspace)
+	_, err := c.ksClient.TenantV1alpha2().WorkspaceTemplates().Update(context.Background(), workspace, metav1.UpdateOptions{})
 	klog.V(4).Infof("update workspace after manager has been deleted")
 	return err
 }
@@ -421,7 +422,7 @@ func (c *controller) initManagerRoleBinding(workspace *tenantv1alpha2.WorkspaceT
 		return nil
 	}
 
-	user, err := c.ksClient.IamV1alpha2().Users().Get(manager, metav1.GetOptions{})
+	user, err := c.ksClient.IamV1alpha2().Users().Get(context.Background(), manager, metav1.GetOptions{})
 	if err != nil {
 		// skip if user has been deleted
 		if errors.IsNotFound(err) {
@@ -458,7 +459,7 @@ func (c *controller) initManagerRoleBinding(workspace *tenantv1alpha2.WorkspaceT
 			},
 		},
 	}
-	_, err = c.ksClient.IamV1alpha2().WorkspaceRoleBindings().Create(managerRoleBinding)
+	_, err = c.ksClient.IamV1alpha2().WorkspaceRoleBindings().Create(context.Background(), managerRoleBinding, metav1.CreateOptions{})
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			return nil
@@ -471,7 +472,7 @@ func (c *controller) initManagerRoleBinding(workspace *tenantv1alpha2.WorkspaceT
 }
 
 func (c *controller) updateFederatedWorkspace(workspace *typesv1beta1.FederatedWorkspace) error {
-	_, err := c.ksClient.TypesV1beta1().FederatedWorkspaces().Update(workspace)
+	_, err := c.ksClient.TypesV1beta1().FederatedWorkspaces().Update(context.Background(), workspace, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Error(err)
 		return err

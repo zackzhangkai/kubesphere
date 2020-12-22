@@ -136,22 +136,6 @@ func AddToContainer(c *restful.Container) error {
 		Returns(http.StatusOK, "ok", graphResponse{}).
 		Writes(graphResponse{})).Produces(restful.MIME_JSON)
 
-	// Get namespaces graph, for multiple namespaces
-	// Get /namespaces/graph
-	webservice.Route(webservice.GET("/namespaces/graph").
-		To(getNamespacesGraph).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Doc("Get graph from all namespaces").
-		Param(webservice.QueryParameter("duration", "duration of the query period, in seconds").DefaultValue("10m")).
-		Param(webservice.QueryParameter("graphType", "type of the generated service graph. Available graph types: [app, service, versionedApp, workload].").DefaultValue("workload")).
-		Param(webservice.QueryParameter("groupBy", "app box grouping characteristic. Available groupings: [app, none, version].").DefaultValue("none")).
-		Param(webservice.QueryParameter("queryTime", "from which time point in UNIX timestamp, default now")).
-		Param(webservice.QueryParameter("injectServiceNodes", "flag for injecting the requested service node between source and destination nodes.").DefaultValue("false")).
-		Returns(http.StatusBadRequest, "bad request", BadRequestError{}).
-		Returns(http.StatusNotFound, "not found", NotFoundError{}).
-		Returns(http.StatusOK, "ok", graphResponse{}).
-		Writes(graphResponse{})).Produces(restful.MIME_JSON)
-
 	// Get namespace health
 	webservice.Route(webservice.GET("/namespaces/{namespace}/health").
 		To(getNamespaceHealth).

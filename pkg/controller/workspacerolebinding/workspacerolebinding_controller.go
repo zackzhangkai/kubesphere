@@ -17,6 +17,7 @@ limitations under the License.
 package workspacerolebinding
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
@@ -276,7 +277,7 @@ func (c *Controller) bindWorkspace(workspaceRoleBinding *iamv1alpha2.WorkspaceRo
 			klog.Error(err)
 			return err
 		}
-		_, err = c.ksClient.IamV1alpha2().WorkspaceRoleBindings().Update(workspaceRoleBinding)
+		_, err = c.ksClient.IamV1alpha2().WorkspaceRoleBindings().Update(context.Background(), workspaceRoleBinding, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -356,7 +357,7 @@ func (c *Controller) relateToClusterAdmin(workspaceRoleBinding *iamv1alpha2.Work
 		return err
 	}
 
-	_, err = c.k8sClient.RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+	_, err = c.k8sClient.RbacV1().ClusterRoleBindings().Create(context.Background(), clusterRoleBinding, metav1.CreateOptions{})
 
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
@@ -419,7 +420,7 @@ func (c *Controller) createFederatedWorkspaceRoleBinding(workspaceRoleBinding *i
 		AbsPath(fmt.Sprintf("/apis/%s/%s/%s", iamv1alpha2.FedWorkspaceRoleBindingResource.Group,
 			iamv1alpha2.FedWorkspaceRoleBindingResource.Version, iamv1alpha2.FedWorkspaceRoleBindingResource.Name)).
 		Body(data).
-		Do().Error()
+		Do(context.Background()).Error()
 
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
@@ -446,7 +447,7 @@ func (c *Controller) updateFederatedWorkspaceRoleBinding(federatedWorkspaceRoleB
 			iamv1alpha2.FedWorkspaceRoleBindingResource.Version, iamv1alpha2.FedWorkspaceRoleBindingResource.Name,
 			federatedWorkspaceRoleBinding.Name)).
 		Body(data).
-		Do().Error()
+		Do(context.Background()).Error()
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -465,7 +466,7 @@ func (c *Controller) ensureNotControlledByKubefed(workspaceRoleBinding *iamv1alp
 		}
 		workspaceRoleBinding = workspaceRoleBinding.DeepCopy()
 		workspaceRoleBinding.Labels[constants.KubefedManagedLabel] = "false"
-		_, err := c.ksClient.IamV1alpha2().WorkspaceRoleBindings().Update(workspaceRoleBinding)
+		_, err := c.ksClient.IamV1alpha2().WorkspaceRoleBindings().Update(context.Background(), workspaceRoleBinding, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Error(err)
 		}

@@ -17,15 +17,15 @@ limitations under the License.
 package k8s
 
 import (
-	snapshotclient "github.com/kubernetes-csi/external-snapshotter/v2/pkg/client/clientset/versioned"
+	snapshotclient "github.com/kubernetes-csi/external-snapshotter/client/v3/clientset/versioned"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kubesphere "kubesphere.io/kubesphere/pkg/client/clientset/versioned"
-	application "sigs.k8s.io/application/pkg/client/clientset/versioned"
-	applicationclientset "sigs.k8s.io/application/pkg/client/clientset/versioned"
+	//application "sigs.k8s.io/application/pkg/client/clientset/versioned"
+	//applicationclientset "sigs.k8s.io/application/pkg/client/clientset/versioned"
 )
 
 type FakeClient struct {
@@ -38,7 +38,7 @@ type FakeClient struct {
 	// generated clientset
 	KubeSphereClient kubesphere.Interface
 
-	ApplicationClient applicationclientset.Interface
+	ApplicationClient interface{}
 
 	IstioClient istioclient.Interface
 
@@ -52,7 +52,7 @@ type FakeClient struct {
 }
 
 func NewFakeClientSets(k8sClient kubernetes.Interface, discoveryClient *discovery.DiscoveryClient,
-	kubeSphereClient kubesphere.Interface, applicationClient applicationclientset.Interface,
+	kubeSphereClient kubesphere.Interface, applicationClient interface{},
 	istioClient istioclient.Interface, snapshotClient snapshotclient.Interface,
 	apiextensionsclient apiextensionsclient.Interface, masterURL string, kubeConfig *rest.Config) Client {
 	return &FakeClient{
@@ -80,7 +80,7 @@ func (n *FakeClient) Istio() istioclient.Interface {
 	return n.IstioClient
 }
 
-func (n *FakeClient) Application() application.Interface {
+func (n *FakeClient) Application() interface{} {
 	return n.ApplicationClient
 }
 

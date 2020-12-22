@@ -1,3 +1,5 @@
+// +build ignore
+
 /*
 Copyright 2019 The KubeSphere Authors.
 

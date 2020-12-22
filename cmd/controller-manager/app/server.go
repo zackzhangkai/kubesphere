@@ -152,7 +152,6 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		kubernetesClient.Kubernetes(),
 		kubernetesClient.KubeSphere(),
 		kubernetesClient.Istio(),
-		kubernetesClient.Application(),
 		kubernetesClient.Snapshot(),
 		kubernetesClient.ApiExtensions())
 
