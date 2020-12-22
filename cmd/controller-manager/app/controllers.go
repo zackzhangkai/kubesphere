@@ -101,7 +101,7 @@ func addControllers(
 			client.KubeSphere())
 	}
 
-	apController := application.NewApplicationController(kubernetesInformer.Core().V1().Services(),
+	appController := application.NewApplicationController(kubernetesInformer.Core().V1().Services(),
 		kubernetesInformer.Apps().V1().Deployments(),
 		kubernetesInformer.Apps().V1().StatefulSets(),
 		kubesphereInformer.Servicemesh().V1alpha2().Strategies(),
@@ -315,7 +315,7 @@ func addControllers(
 	controllers := map[string]manager.Runnable{
 		"virtualservice-controller":       vsController,
 		"destinationrule-controller":      drController,
-		"application-controller":          apController,
+		"application-controller":          appController,
 		"job-controller":                  jobController,
 		"s2ibinary-controller":            s2iBinaryController,
 		"s2irun-controller":               s2iRunController,

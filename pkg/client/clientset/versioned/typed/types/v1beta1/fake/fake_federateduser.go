@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +41,7 @@ var federatedusersResource = schema.GroupVersionResource{Group: "types.kubefed.i
 var federatedusersKind = schema.GroupVersionKind{Group: "types.kubefed.io", Version: "v1beta1", Kind: "FederatedUser"}
 
 // Get takes name of the federatedUser, and returns the corresponding federatedUser object, and an error if there is any.
-func (c *FakeFederatedUsers) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedUser, err error) {
+func (c *FakeFederatedUsers) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedUser, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(federatedusersResource, c.ns, name), &v1beta1.FederatedUser{})
 
@@ -50,7 +52,7 @@ func (c *FakeFederatedUsers) Get(name string, options v1.GetOptions) (result *v1
 }
 
 // List takes label and field selectors, and returns the list of FederatedUsers that match those selectors.
-func (c *FakeFederatedUsers) List(opts v1.ListOptions) (result *v1beta1.FederatedUserList, err error) {
+func (c *FakeFederatedUsers) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedUserList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(federatedusersResource, federatedusersKind, c.ns, opts), &v1beta1.FederatedUserList{})
 
@@ -72,14 +74,14 @@ func (c *FakeFederatedUsers) List(opts v1.ListOptions) (result *v1beta1.Federate
 }
 
 // Watch returns a watch.Interface that watches the requested federatedUsers.
-func (c *FakeFederatedUsers) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFederatedUsers) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(federatedusersResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a federatedUser and creates it.  Returns the server's representation of the federatedUser, and an error, if there is any.
-func (c *FakeFederatedUsers) Create(federatedUser *v1beta1.FederatedUser) (result *v1beta1.FederatedUser, err error) {
+func (c *FakeFederatedUsers) Create(ctx context.Context, federatedUser *v1beta1.FederatedUser, opts v1.CreateOptions) (result *v1beta1.FederatedUser, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(federatedusersResource, c.ns, federatedUser), &v1beta1.FederatedUser{})
 
@@ -90,7 +92,7 @@ func (c *FakeFederatedUsers) Create(federatedUser *v1beta1.FederatedUser) (resul
 }
 
 // Update takes the representation of a federatedUser and updates it. Returns the server's representation of the federatedUser, and an error, if there is any.
-func (c *FakeFederatedUsers) Update(federatedUser *v1beta1.FederatedUser) (result *v1beta1.FederatedUser, err error) {
+func (c *FakeFederatedUsers) Update(ctx context.Context, federatedUser *v1beta1.FederatedUser, opts v1.UpdateOptions) (result *v1beta1.FederatedUser, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(federatedusersResource, c.ns, federatedUser), &v1beta1.FederatedUser{})
 
@@ -102,7 +104,7 @@ func (c *FakeFederatedUsers) Update(federatedUser *v1beta1.FederatedUser) (resul
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFederatedUsers) UpdateStatus(federatedUser *v1beta1.FederatedUser) (*v1beta1.FederatedUser, error) {
+func (c *FakeFederatedUsers) UpdateStatus(ctx context.Context, federatedUser *v1beta1.FederatedUser, opts v1.UpdateOptions) (*v1beta1.FederatedUser, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(federatedusersResource, "status", c.ns, federatedUser), &v1beta1.FederatedUser{})
 
@@ -113,7 +115,7 @@ func (c *FakeFederatedUsers) UpdateStatus(federatedUser *v1beta1.FederatedUser) 
 }
 
 // Delete takes name of the federatedUser and deletes it. Returns an error if one occurs.
-func (c *FakeFederatedUsers) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFederatedUsers) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(federatedusersResource, c.ns, name), &v1beta1.FederatedUser{})
 
@@ -121,15 +123,15 @@ func (c *FakeFederatedUsers) Delete(name string, options *v1.DeleteOptions) erro
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFederatedUsers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(federatedusersResource, c.ns, listOptions)
+func (c *FakeFederatedUsers) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(federatedusersResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.FederatedUserList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched federatedUser.
-func (c *FakeFederatedUsers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedUser, err error) {
+func (c *FakeFederatedUsers) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedUser, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(federatedusersResource, c.ns, name, pt, data, subresources...), &v1beta1.FederatedUser{})
 

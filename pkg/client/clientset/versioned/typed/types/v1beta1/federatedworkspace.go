@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,15 +38,15 @@ type FederatedWorkspacesGetter interface {
 
 // FederatedWorkspaceInterface has methods to work with FederatedWorkspace resources.
 type FederatedWorkspaceInterface interface {
-	Create(*v1beta1.FederatedWorkspace) (*v1beta1.FederatedWorkspace, error)
-	Update(*v1beta1.FederatedWorkspace) (*v1beta1.FederatedWorkspace, error)
-	UpdateStatus(*v1beta1.FederatedWorkspace) (*v1beta1.FederatedWorkspace, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1beta1.FederatedWorkspace, error)
-	List(opts v1.ListOptions) (*v1beta1.FederatedWorkspaceList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedWorkspace, err error)
+	Create(ctx context.Context, federatedWorkspace *v1beta1.FederatedWorkspace, opts v1.CreateOptions) (*v1beta1.FederatedWorkspace, error)
+	Update(ctx context.Context, federatedWorkspace *v1beta1.FederatedWorkspace, opts v1.UpdateOptions) (*v1beta1.FederatedWorkspace, error)
+	UpdateStatus(ctx context.Context, federatedWorkspace *v1beta1.FederatedWorkspace, opts v1.UpdateOptions) (*v1beta1.FederatedWorkspace, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.FederatedWorkspace, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.FederatedWorkspaceList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedWorkspace, err error)
 	FederatedWorkspaceExpansion
 }
 
@@ -62,19 +63,19 @@ func newFederatedWorkspaces(c *TypesV1beta1Client) *federatedWorkspaces {
 }
 
 // Get takes name of the federatedWorkspace, and returns the corresponding federatedWorkspace object, and an error if there is any.
-func (c *federatedWorkspaces) Get(name string, options v1.GetOptions) (result *v1beta1.FederatedWorkspace, err error) {
+func (c *federatedWorkspaces) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.FederatedWorkspace, err error) {
 	result = &v1beta1.FederatedWorkspace{}
 	err = c.client.Get().
 		Resource("federatedworkspaces").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of FederatedWorkspaces that match those selectors.
-func (c *federatedWorkspaces) List(opts v1.ListOptions) (result *v1beta1.FederatedWorkspaceList, err error) {
+func (c *federatedWorkspaces) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.FederatedWorkspaceList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -84,13 +85,13 @@ func (c *federatedWorkspaces) List(opts v1.ListOptions) (result *v1beta1.Federat
 		Resource("federatedworkspaces").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested federatedWorkspaces.
-func (c *federatedWorkspaces) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *federatedWorkspaces) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -100,81 +101,84 @@ func (c *federatedWorkspaces) Watch(opts v1.ListOptions) (watch.Interface, error
 		Resource("federatedworkspaces").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a federatedWorkspace and creates it.  Returns the server's representation of the federatedWorkspace, and an error, if there is any.
-func (c *federatedWorkspaces) Create(federatedWorkspace *v1beta1.FederatedWorkspace) (result *v1beta1.FederatedWorkspace, err error) {
+func (c *federatedWorkspaces) Create(ctx context.Context, federatedWorkspace *v1beta1.FederatedWorkspace, opts v1.CreateOptions) (result *v1beta1.FederatedWorkspace, err error) {
 	result = &v1beta1.FederatedWorkspace{}
 	err = c.client.Post().
 		Resource("federatedworkspaces").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedWorkspace).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a federatedWorkspace and updates it. Returns the server's representation of the federatedWorkspace, and an error, if there is any.
-func (c *federatedWorkspaces) Update(federatedWorkspace *v1beta1.FederatedWorkspace) (result *v1beta1.FederatedWorkspace, err error) {
+func (c *federatedWorkspaces) Update(ctx context.Context, federatedWorkspace *v1beta1.FederatedWorkspace, opts v1.UpdateOptions) (result *v1beta1.FederatedWorkspace, err error) {
 	result = &v1beta1.FederatedWorkspace{}
 	err = c.client.Put().
 		Resource("federatedworkspaces").
 		Name(federatedWorkspace.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedWorkspace).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *federatedWorkspaces) UpdateStatus(federatedWorkspace *v1beta1.FederatedWorkspace) (result *v1beta1.FederatedWorkspace, err error) {
+func (c *federatedWorkspaces) UpdateStatus(ctx context.Context, federatedWorkspace *v1beta1.FederatedWorkspace, opts v1.UpdateOptions) (result *v1beta1.FederatedWorkspace, err error) {
 	result = &v1beta1.FederatedWorkspace{}
 	err = c.client.Put().
 		Resource("federatedworkspaces").
 		Name(federatedWorkspace.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(federatedWorkspace).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the federatedWorkspace and deletes it. Returns an error if one occurs.
-func (c *federatedWorkspaces) Delete(name string, options *v1.DeleteOptions) error {
+func (c *federatedWorkspaces) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("federatedworkspaces").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *federatedWorkspaces) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *federatedWorkspaces) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Resource("federatedworkspaces").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched federatedWorkspace.
-func (c *federatedWorkspaces) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.FederatedWorkspace, err error) {
+func (c *federatedWorkspaces) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.FederatedWorkspace, err error) {
 	result = &v1beta1.FederatedWorkspace{}
 	err = c.client.Patch(pt).
 		Resource("federatedworkspaces").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

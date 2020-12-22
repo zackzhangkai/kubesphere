@@ -17,6 +17,7 @@ limitations under the License.
 package workspacerole
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
@@ -276,7 +277,7 @@ func (c *Controller) bindWorkspace(workspaceRole *iamv1alpha2.WorkspaceRole) err
 			klog.Error(err)
 			return err
 		}
-		_, err = c.ksClient.IamV1alpha2().WorkspaceRoles().Update(workspaceRole)
+		_, err = c.ksClient.IamV1alpha2().WorkspaceRoles().Update(context.Background(), workspaceRole, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -359,7 +360,7 @@ func (c *Controller) createFederatedWorkspaceRole(workspaceRole *iamv1alpha2.Wor
 		AbsPath(fmt.Sprintf("/apis/%s/%s/%s", iamv1alpha2.FedWorkspaceRoleResource.Group,
 			iamv1alpha2.FedWorkspaceRoleResource.Version, iamv1alpha2.FedWorkspaceRoleResource.Name)).
 		Body(data).
-		Do().Error()
+		Do(context.Background()).Error()
 
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
@@ -385,7 +386,7 @@ func (c *Controller) updateFederatedGlobalRole(federatedWorkspaceRole *iamv1alph
 			iamv1alpha2.FedWorkspaceRoleResource.Version, iamv1alpha2.FedWorkspaceRoleResource.Name,
 			federatedWorkspaceRole.Name)).
 		Body(data).
-		Do().Error()
+		Do(context.Background()).Error()
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -403,7 +404,7 @@ func (c *Controller) ensureNotControlledByKubefed(workspaceRole *iamv1alpha2.Wor
 		}
 		workspaceRole = workspaceRole.DeepCopy()
 		workspaceRole.Labels[constants.KubefedManagedLabel] = "false"
-		_, err := c.ksClient.IamV1alpha2().WorkspaceRoles().Update(workspaceRole)
+		_, err := c.ksClient.IamV1alpha2().WorkspaceRoles().Update(context.Background(), workspaceRole, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Error(err)
 		}
