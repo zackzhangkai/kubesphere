@@ -50,9 +50,7 @@ func Resource(resource string) schema.GroupResource {
 func AddToContainer(c *restful.Container, informerFactory informers.InformerFactory) error {
 
 	webservice := runtime.NewWebService(GroupVersion)
-	handler := New(resourcev1alpha3.NewResourceGetter(informerFactory),
-		resourcev1alpha2.NewResourceGetter(informerFactory),
-		components.NewComponentsGetter(informerFactory.KubernetesSharedInformerFactory()))
+	handler := New(resourcev1alpha3.NewResourceGetter(informerFactory), resourcev1alpha2.NewResourceGetter(informerFactory), components.NewComponentsGetter(informerFactory.KubernetesSharedInformerFactory()))
 
 	webservice.Route(webservice.GET("/{resources}").
 		To(handler.handleListResources).

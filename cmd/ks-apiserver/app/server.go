@@ -22,9 +22,10 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog"
-
 	"kubesphere.io/kubesphere/cmd/ks-apiserver/app/options"
+	"kubesphere.io/kubesphere/pkg/apis"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	"kubesphere.io/kubesphere/pkg/utils/signals"
 	"kubesphere.io/kubesphere/pkg/utils/term"
 
@@ -76,6 +77,10 @@ cluster's shared state through which all other components interact.`,
 }
 
 func Run(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
+
+	if err := apis.AddToScheme(scheme.Scheme); err != nil {
+		klog.Fatalf("unable add APIs to scheme: %v", err)
+	}
 
 	initializeServicemeshConfig(s)
 

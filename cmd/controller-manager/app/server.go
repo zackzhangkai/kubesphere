@@ -18,8 +18,6 @@ package app
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -28,6 +26,7 @@ import (
 	"kubesphere.io/kubesphere/cmd/controller-manager/app/options"
 	"kubesphere.io/kubesphere/pkg/apis"
 	controllerconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
+	appcontroller "kubesphere.io/kubesphere/pkg/controller/application"
 	"kubesphere.io/kubesphere/pkg/controller/namespace"
 	"kubesphere.io/kubesphere/pkg/controller/network/nsnetworkpolicy"
 	"kubesphere.io/kubesphere/pkg/controller/user"
@@ -40,6 +39,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/openpitrix"
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/utils/term"
+	"os"
 	application "sigs.k8s.io/application/controllers"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -103,7 +103,6 @@ func NewControllerManagerCommand() *cobra.Command {
 }
 
 func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) error {
-
 	kubernetesClient, err := k8s.NewKubernetesClient(s.KubernetesOptions)
 	if err != nil {
 		klog.Errorf("Failed to create kubernetes clientset %v", err)
@@ -153,7 +152,6 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 		kubernetesClient.Kubernetes(),
 		kubernetesClient.KubeSphere(),
 		kubernetesClient.Istio(),
-		kubernetesClient.Application(),
 		kubernetesClient.Snapshot(),
 		kubernetesClient.ApiExtensions())
 
@@ -190,6 +188,11 @@ func run(s *options.KubeSphereControllerManagerOptions, stopCh <-chan struct{}) 
 	err = workspace.Add(mgr)
 	if err != nil {
 		klog.Fatal("Unable to create workspace controller")
+	}
+
+	err = appcontroller.Add(mgr)
+	if err != nil {
+		klog.Fatal("Unable to create ks application controller")
 	}
 
 	err = namespace.Add(mgr)

@@ -20,14 +20,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"kubesphere.io/kubesphere/pkg/apiserver/authorization/rbac"
-	"kubesphere.io/kubesphere/pkg/models/auth"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
-	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
-	"net/http"
-	rt "runtime"
-	"time"
-
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	urlruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -49,11 +41,13 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/authorizerfactory"
 	authorizationoptions "kubesphere.io/kubesphere/pkg/apiserver/authorization/options"
 	"kubesphere.io/kubesphere/pkg/apiserver/authorization/path"
+	"kubesphere.io/kubesphere/pkg/apiserver/authorization/rbac"
 	unionauthorizer "kubesphere.io/kubesphere/pkg/apiserver/authorization/union"
 	apiserverconfig "kubesphere.io/kubesphere/pkg/apiserver/config"
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
+	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	"kubesphere.io/kubesphere/pkg/informers"
 	alertingv1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
@@ -73,11 +67,15 @@ import (
 	tenantv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/tenant/v1alpha2"
 	terminalv1alpha2 "kubesphere.io/kubesphere/pkg/kapis/terminal/v1alpha2"
 	"kubesphere.io/kubesphere/pkg/kapis/version"
+	"kubesphere.io/kubesphere/pkg/models/auth"
 	"kubesphere.io/kubesphere/pkg/models/iam/am"
 	"kubesphere.io/kubesphere/pkg/models/iam/group"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/loginrecord"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
+	"kubesphere.io/kubesphere/pkg/simple/client/cacheclient"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -87,6 +85,9 @@ import (
 	"kubesphere.io/kubesphere/pkg/simple/client/s3"
 	"kubesphere.io/kubesphere/pkg/simple/client/sonarqube"
 	utilnet "kubesphere.io/kubesphere/pkg/utils/net"
+	"net/http"
+	rt "runtime"
+	"time"
 )
 
 const (
@@ -353,27 +354,20 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 		{Group: "", Version: "v1", Resource: "persistentvolumeclaims"},
 		{Group: "", Version: "v1", Resource: "secrets"},
 		{Group: "", Version: "v1", Resource: "configmaps"},
-
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "roles"},
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "rolebindings"},
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterroles"},
 		{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "clusterrolebindings"},
-
 		{Group: "apps", Version: "v1", Resource: "deployments"},
 		{Group: "apps", Version: "v1", Resource: "daemonsets"},
 		{Group: "apps", Version: "v1", Resource: "replicasets"},
 		{Group: "apps", Version: "v1", Resource: "statefulsets"},
 		{Group: "apps", Version: "v1", Resource: "controllerrevisions"},
-
 		{Group: "storage.k8s.io", Version: "v1", Resource: "storageclasses"},
-
 		{Group: "batch", Version: "v1", Resource: "jobs"},
 		{Group: "batch", Version: "v1beta1", Resource: "cronjobs"},
-
 		{Group: "extensions", Version: "v1beta1", Resource: "ingresses"},
-
 		{Group: "autoscaling", Version: "v2beta2", Resource: "horizontalpodautoscalers"},
-
 		{Group: "networking.k8s.io", Version: "v1", Resource: "networkpolicies"},
 	}
 
@@ -471,26 +465,6 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	ksInformerFactory.Start(stopCh)
 	ksInformerFactory.WaitForCacheSync(stopCh)
 
-	appInformerFactory := s.InformerFactory.ApplicationSharedInformerFactory()
-
-	appGVRs := []schema.GroupVersionResource{
-		{Group: "app.k8s.io", Version: "v1beta1", Resource: "applications"},
-	}
-
-	for _, gvr := range appGVRs {
-		if !isResourceExists(gvr) {
-			klog.Warningf("resource %s not exists in the cluster", gvr)
-		} else {
-			_, err = appInformerFactory.ForResource(gvr)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	appInformerFactory.Start(stopCh)
-	appInformerFactory.WaitForCacheSync(stopCh)
-
 	snapshotInformerFactory := s.InformerFactory.SnapshotSharedInformerFactory()
 	snapshotGVRs := []schema.GroupVersionResource{
 		{Group: "snapshot.storage.k8s.io", Version: "v1beta1", Resource: "volumesnapshotclasses"},
@@ -527,6 +501,9 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	}
 	apiextensionsInformerFactory.Start(stopCh)
 	apiextensionsInformerFactory.WaitForCacheSync(stopCh)
+
+	// set up controller runtime client and cache for resources
+	_ = cacheclient.New(s.KubernetesClient.Config(), scheme.Scheme, stopCh)
 
 	klog.V(0).Info("Finished caching objects")
 
