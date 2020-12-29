@@ -24,6 +24,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/components"
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha2"
 	resourcev1alpha2 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha2/resource"
+	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/application"
 	resourcev1alpha3 "kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/resource"
 	"kubesphere.io/kubesphere/pkg/server/params"
 	"strings"
@@ -48,6 +49,17 @@ func (h *Handler) handleGetResources(request *restful.Request, response *restful
 	resourceType := request.PathParameter("resources")
 	name := request.PathParameter("name")
 
+	// application use controller-runtime client to retrieve resources
+	if resourceType == "applications" {
+		app := application.New()
+		result, err := app.Get(namespace, name)
+		if err == nil {
+			response.WriteEntity(result)
+			return
+		}
+	}
+
+	// use informers to retrieve resources
 	result, err := h.resourceGetterV1alpha3.Get(resourceType, namespace, name)
 	if err == nil {
 		response.WriteEntity(result)
@@ -79,6 +91,17 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 	resourceType := request.PathParameter("resources")
 	namespace := request.PathParameter("namespace")
 
+	// application use controller-runtime client to retrieve resources
+	if resourceType == "applications" {
+		app := application.New()
+		result, err := app.List(namespace, query)
+		if err == nil {
+			response.WriteEntity(result)
+			return
+		}
+	}
+
+	// use informers to retrieve resources
 	result, err := h.resourceGetterV1alpha3.List(resourceType, namespace, query)
 
 	if err == nil {
@@ -100,7 +123,6 @@ func (h *Handler) handleListResources(request *restful.Request, response *restfu
 		api.HandleInternalError(response, nil, err)
 		return
 	}
-
 	response.WriteEntity(result)
 }
 
