@@ -115,5 +115,5 @@ func prepare() *ResourceGetter {
 			Namespaces().Informer().GetIndexer().Add(namespace)
 	}
 
-	return NewResourceGetter(fakeInformerFactory)
+	return NewResourceGetter(fakeInformerFactory, nil)
 }

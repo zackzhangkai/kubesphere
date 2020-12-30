@@ -23,9 +23,9 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	"kubesphere.io/kubesphere/pkg/apiserver/query"
-	"kubesphere.io/kubesphere/pkg/simple/client/cacheclient"
 	"path/filepath"
 	appv1beta1 "sigs.k8s.io/application/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -46,40 +46,47 @@ func createNamespace(name string, ctx context.Context) {
 	}
 }
 
-func TestListApplications(t *testing.T) {
+func TestGetListApplications(t *testing.T) {
 	e := &envtest.Environment{CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "..", "..", "config", "crds")}}
-
-	if err := appv1beta1.AddToScheme(scheme.Scheme); err != nil {
-		t.Fatalf("unable add APIs to scheme: %v", err)
-	}
-
 	cfg, err := e.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	sch := scheme.Scheme
+	if err := appv1beta1.AddToScheme(sch); err != nil {
+		t.Fatalf("unable add APIs to scheme: %v", err)
+	}
+
 	stopCh := make(chan struct{})
-	if err := cacheclient.New(cfg, scheme.Scheme, stopCh); err != nil {
-		t.Fatal(err)
+
+	ce, _ := cache.New(cfg, cache.Options{Scheme: sch})
+	go ce.Start(stopCh)
+	ce.WaitForCacheSync(stopCh)
+
+	c, _ = client.New(cfg, client.Options{Scheme: sch})
+
+	var labelSet1 = map[string]string{"foo": "bar"}
+	application := &appv1beta1.Application{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bar",
+			Namespace: "foo",
+			Labels:    labelSet1,
+		},
 	}
+
 	ctx := context.TODO()
-	c = cacheclient.Client
-	createNamespace("bar", ctx)
+	createNamespace("foo", ctx)
+	_ = c.Create(ctx, application)
 
-	instance := &appv1beta1.Application{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"}, Spec: appv1beta1.ApplicationSpec{}}
+	getter := New(ce)
 
-	if err := c.Create(ctx, instance); err != nil {
-		t.Fatal(err)
-	}
-
-	getter := New()
-
-	_, err = getter.List("bar", &query.Query{})
+	_, err = getter.List("foo", &query.Query{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = getter.Get("bar", "foo")
+	_, err = getter.Get("foo", "bar")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -90,7 +90,7 @@ func TestResourceV1alpha2Fallback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	handler := New(resourcev1alpha3.NewResourceGetter(factory), resourcev1alpha2.NewResourceGetter(factory), components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()))
+	handler := New(resourcev1alpha3.NewResourceGetter(factory, nil), resourcev1alpha2.NewResourceGetter(factory), components.NewComponentsGetter(factory.KubernetesSharedInformerFactory()))
 
 	for _, test := range tests {
 		got, err := listResources(test.namespace, test.resource, test.query, handler)

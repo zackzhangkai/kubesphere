@@ -47,7 +47,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/dispatch"
 	"kubesphere.io/kubesphere/pkg/apiserver/filters"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
-	"kubesphere.io/kubesphere/pkg/client/clientset/versioned/scheme"
 	"kubesphere.io/kubesphere/pkg/informers"
 	alertingv1 "kubesphere.io/kubesphere/pkg/kapis/alerting/v1"
 	clusterkapisv1alpha1 "kubesphere.io/kubesphere/pkg/kapis/cluster/v1alpha1"
@@ -75,7 +74,6 @@ import (
 	"kubesphere.io/kubesphere/pkg/models/resources/v1alpha3/user"
 	"kubesphere.io/kubesphere/pkg/simple/client/auditing"
 	"kubesphere.io/kubesphere/pkg/simple/client/cache"
-	"kubesphere.io/kubesphere/pkg/simple/client/cacheclient"
 	"kubesphere.io/kubesphere/pkg/simple/client/devops"
 	"kubesphere.io/kubesphere/pkg/simple/client/events"
 	"kubesphere.io/kubesphere/pkg/simple/client/k8s"
@@ -87,6 +85,7 @@ import (
 	utilnet "kubesphere.io/kubesphere/pkg/utils/net"
 	"net/http"
 	rt "runtime"
+	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"time"
 )
 
@@ -144,6 +143,9 @@ type APIServer struct {
 	EventsClient events.Client
 
 	AuditingClient auditing.Client
+
+	// controller-runtime cache
+	RuntimeCache runtimecache.Cache
 }
 
 func (s *APIServer) PrepareRun(stopCh <-chan struct{}) error {
@@ -183,7 +185,7 @@ func (s *APIServer) installKubeSphereAPIs() {
 	rbacAuthorizer := rbac.NewRBACAuthorizer(amOperator)
 
 	urlruntime.Must(configv1alpha2.AddToContainer(s.container, s.Config))
-	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory))
+	urlruntime.Must(resourcev1alpha3.AddToContainer(s.container, s.InformerFactory, s.RuntimeCache))
 	urlruntime.Must(monitoringv1alpha3.AddToContainer(s.container, s.KubernetesClient.Kubernetes(), s.MonitoringClient, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(openpitrixv1.AddToContainer(s.container, s.InformerFactory, s.OpenpitrixClient))
 	urlruntime.Must(operationsv1alpha2.AddToContainer(s.container, s.KubernetesClient.Kubernetes()))
@@ -502,8 +504,9 @@ func (s *APIServer) waitForResourceSync(stopCh <-chan struct{}) error {
 	apiextensionsInformerFactory.Start(stopCh)
 	apiextensionsInformerFactory.WaitForCacheSync(stopCh)
 
-	// set up controller runtime client and cache for resources
-	_ = cacheclient.New(s.KubernetesClient.Config(), scheme.Scheme, stopCh)
+	// controller runtime cache for resources
+	go s.RuntimeCache.Start(stopCh)
+	s.RuntimeCache.WaitForCacheSync(stopCh)
 
 	klog.V(0).Info("Finished caching objects")
 
