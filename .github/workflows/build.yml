@@ -3,12 +3,14 @@ name: Go
 on:
   push:
     branches:
+      - 'CICD'
       - 'master'
       - 'release*'
     tags:
       - 'v*'
   pull_request:
     branches:
+      - 'CICD'
       - 'master'
       - 'release*'
 
@@ -35,23 +37,10 @@ jobs:
       - name: Downloading go dependencies
         run: go mod vendor
 
-      - name: Install kubebuilder
-        run: bash hack/install_kubebuilder.sh
-
       - name: Build
-        run: make all
-
-      - name: Make OpenAPI Spec
-        run: make openapi
-
-      - name: Uploading code coverage
-        uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.txt
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+        run: |
+          make ks-apiserver
+          make ks-controller-manager
 
       - name: Get branch name
         id: extract_branch
@@ -65,4 +54,17 @@ jobs:
         if: github.event_name == 'push'
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          bash hack/docker_build.sh ${{ steps.extract_branch.outputs.branch }}
+          bash hack/docker_build.sh latest zackzhangkai
+
+      - name: executing remote ssh
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: 31233
+          script: |
+            kubectl -n kubesphere-system set image deployment/ks-apiserver ks-apiserver=zackzhangkai/ks-apiserver
+            kubectl -n kubesphere-system set image deployment/ks-controller-manager ks-controller-manager=zackzhangkai/ks-controller-manager
+            kubectl -n kubesphere-system rollout restart deploy/ks-apiserver
+            kubectl -n kubesphere-system rollout restart deploy/ks-controller-manager
