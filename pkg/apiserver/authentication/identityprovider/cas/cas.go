@@ -20,8 +20,8 @@ package cas
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
+	gocas "github.com/go-cas/cas"
 	"github.com/mitchellh/mapstructure"
 	"io/ioutil"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
@@ -68,7 +68,7 @@ func (c cas) IdentityExchange(ticket string) (identityprovider.Identity, error) 
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: c.InsecureSkipVerify},
 	}
 	client := &http.Client{Transport: tr}
-	serviceValidateURL := fmt.Sprintf("%s/serviceValidate?format=json&service=%s&ticket=%s", c.CASServerURL, c.RedirectURL, ticket)
+	serviceValidateURL := fmt.Sprintf("%s/serviceValidate?&service=%s&ticket=%s", c.CASServerURL, c.RedirectURL, ticket)
 	resp, err := client.Get(serviceValidateURL)
 	if err != nil {
 		return nil, fmt.Errorf("cas validate service failed: %v", err)
@@ -78,23 +78,11 @@ func (c cas) IdentityExchange(ticket string) (identityprovider.Identity, error) 
 	if err != nil {
 		return nil, fmt.Errorf("cas read data failed: %v", err)
 	}
-	var casResponse casResponse
-	err = json.Unmarshal(data, &casResponse)
+
+	casResponse, err := gocas.ParseServiceResponse(data)
 	if err != nil {
-		return nil, fmt.Errorf("cas cannot unmarshal response: %v", err)
-	}
-	if casResponse.ServiceResponse.AuthenticationFailure != nil {
-		errorCode := casResponse.ServiceResponse.AuthenticationFailure["code"]
-		return nil, fmt.Errorf("cas authentication failed: %v", errorCode)
+		return nil, fmt.Errorf("cas authentication failed: %v", err)
 	}
 
-	return casResponse.ServiceResponse.AuthenticationSuccess, nil
-}
-
-type casResponse struct {
-	ServiceResponse serviceResponse `json:"serviceResponse"`
-}
-type serviceResponse struct {
-	AuthenticationFailure map[string]string `json:"authenticationFailure,omitempty"`
-	AuthenticationSuccess casIdentity       `json:"authenticationSuccess,omitempty"`
+	return &casIdentity{User: casResponse.User}, nil
 }

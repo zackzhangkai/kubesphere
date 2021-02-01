@@ -161,6 +161,8 @@ github.com/ghodss/yaml
 # github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 => github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 github.com/globalsign/mgo/bson
 github.com/globalsign/mgo/internal/json
+# github.com/go-cas/cas v2.1.0+incompatible => github.com/go-cas/cas v2.1.0+incompatible
+github.com/go-cas/cas
 # github.com/go-ldap/ldap v3.0.3+incompatible => github.com/go-ldap/ldap v3.0.3+incompatible
 github.com/go-ldap/ldap
 # github.com/go-logr/logr v0.1.0 => github.com/go-logr/logr v0.1.0
