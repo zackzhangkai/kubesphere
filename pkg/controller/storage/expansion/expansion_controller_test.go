@@ -35,6 +35,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -67,16 +68,16 @@ func TestSyncHandler(t *testing.T) {
 	}{
 		{
 			name: "mount pvc on deploy",
-			pvc:  getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(123)),
+			pvc:  getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(strconv.Itoa(123))),
 			sc:   getFakeStorageClass("fake-sc", "fake.sc.com"),
 			deploy: getFakeDeployment("fake-deploy", "234", 1,
-				getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(123))),
+				getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(strconv.Itoa(123)))),
 			pvcKey:   "default/fake-pvc",
 			hasError: false,
 		},
 		{
 			name:     "unmounted pvc",
-			pvc:      getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(123)),
+			pvc:      getFakePersistentVolumeClaim("fake-pvc", "vol-12345", "fake-sc", types.UID(strconv.Itoa(123))),
 			sc:       getFakeStorageClass("fake-sc", "fake.sc.com"),
 			pvcKey:   "default/fake-pvc",
 			hasError: true,

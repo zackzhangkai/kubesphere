@@ -130,6 +130,7 @@ func (im *passwordAuthenticator) Authenticate(username, password string) (authus
 					Name: authenticated.GetName(),
 					Labels: map[string]string{
 						iamv1alpha2.IdentifyProviderLabel: providerOptions.Name,
+						iamv1alpha2.OriginUIDLabel:        authenticated.GetID(),
 					},
 				},
 				Spec: iamv1alpha2.UserSpec{

@@ -21,6 +21,7 @@ import (
 	"github.com/emicklei/go-restful"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/klog"
 	"kubesphere.io/kubesphere/pkg/api"
@@ -29,6 +30,7 @@ import (
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/identityprovider"
 	"kubesphere.io/kubesphere/pkg/apiserver/authentication/oauth"
 	authoptions "kubesphere.io/kubesphere/pkg/apiserver/authentication/options"
+	"kubesphere.io/kubesphere/pkg/apiserver/query"
 	"kubesphere.io/kubesphere/pkg/apiserver/request"
 	"kubesphere.io/kubesphere/pkg/models/iam/im"
 	"net/http"
@@ -157,7 +159,6 @@ func (h *handler) oauthCallback(req *restful.Request, resp *restful.Response) {
 	}
 
 	oauthIdentityProvider, err := identityprovider.GetOAuthProvider(providerOptions.Type, providerOptions.Provider)
-
 	if err != nil {
 		err := apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
@@ -165,22 +166,40 @@ func (h *handler) oauthCallback(req *restful.Request, resp *restful.Response) {
 	}
 
 	identity, err := oauthIdentityProvider.IdentityExchange(code)
-
 	if err != nil {
 		err = apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
 		resp.WriteError(http.StatusUnauthorized, err)
 		return
 	}
 
-	authenticated, err := h.im.DescribeUser(identity.GetName())
+	selector := labels.SelectorFromSet(labels.Set{
+		iamv1alpha2.IdentifyProviderLabel: providerOptions.Name,
+		iamv1alpha2.OriginUIDLabel:        identity.GetID()}).String()
+
+	users, err := h.im.ListUsers(&query.Query{LabelSelector: selector})
 	if err != nil {
+		err = apierrors.NewUnauthorized(fmt.Sprintf("Unauthorized: %s", err))
+		resp.WriteError(http.StatusUnauthorized, err)
+		return
+	}
+
+	var authenticated *iamv1alpha2.User
+	if len(users.Items) > 0 {
+		authenticated = users.Items[0].(*iamv1alpha2.User)
+	} else {
+		if oauth.MappingMethodLookup == providerOptions.MappingMethod {
+			err := apierrors.NewUnauthorized(fmt.Sprintf("user %s cannot bound to this identify provider", identity.GetName()))
+			resp.WriteError(http.StatusUnauthorized, err)
+			return
+		}
 		// create user if not exist
-		if (oauth.MappingMethodAuto == providerOptions.MappingMethod ||
-			oauth.MappingMethodMixed == providerOptions.MappingMethod) &&
-			apierrors.IsNotFound(err) {
+		if oauth.MappingMethodAuto == providerOptions.MappingMethod {
 			create := &iamv1alpha2.User{
 				ObjectMeta: v1.ObjectMeta{Name: identity.GetName(),
-					Labels: map[string]string{iamv1alpha2.IdentifyProviderLabel: providerOptions.Name}},
+					Labels: map[string]string{
+						iamv1alpha2.IdentifyProviderLabel: providerOptions.Name,
+						iamv1alpha2.OriginUIDLabel:        identity.GetID(),
+					}},
 				Spec: iamv1alpha2.UserSpec{Email: identity.GetEmail()},
 			}
 			if authenticated, err = h.im.CreateUser(create); err != nil {
@@ -188,28 +207,7 @@ func (h *handler) oauthCallback(req *restful.Request, resp *restful.Response) {
 				api.HandleInternalError(resp, req, err)
 				return
 			}
-		} else {
-			klog.Error(err)
-			api.HandleInternalError(resp, req, err)
-			return
 		}
-	}
-
-	if oauth.MappingMethodLookup == providerOptions.MappingMethod &&
-		authenticated == nil {
-		err := apierrors.NewUnauthorized(fmt.Sprintf("user %s cannot bound to this identify provider", identity.GetName()))
-		klog.Error(err)
-		resp.WriteError(http.StatusUnauthorized, err)
-		return
-	}
-
-	// oauth.MappingMethodAuto
-	// Fails if a user with that user name is already mapped to another identity.
-	if providerOptions.MappingMethod == oauth.MappingMethodAuto && authenticated.Labels[iamv1alpha2.IdentifyProviderLabel] != providerOptions.Name {
-		err := apierrors.NewUnauthorized(fmt.Sprintf("user %s is already bound to other identify provider", identity.GetName()))
-		klog.Error(err)
-		resp.WriteError(http.StatusUnauthorized, err)
-		return
 	}
 
 	result, err := h.tokenOperator.IssueTo(&user.DefaultInfo{

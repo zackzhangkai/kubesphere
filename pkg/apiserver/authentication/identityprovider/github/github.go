@@ -115,6 +115,10 @@ func (g *Github) Setup(options *oauth.DynamicOptions) (identityprovider.OAuthPro
 	return &github, nil
 }
 
+func (g GithubIdentity) GetID() string {
+	return strings.ToLower(g.Login)
+}
+
 func (g GithubIdentity) GetName() string {
 	return strings.ToLower(g.Login)
 }

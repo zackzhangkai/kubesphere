@@ -63,6 +63,7 @@ const (
 	ScopeLabelFormat                      = "scope.kubesphere.io/%s"
 	UserReferenceLabel                    = "iam.kubesphere.io/user-ref"
 	IdentifyProviderLabel                 = "iam.kubesphere.io/identify-provider"
+	OriginUIDLabel                        = "iam.kubesphere.io/origin-uid"
 	PasswordEncryptedAnnotation           = "iam.kubesphere.io/password-encrypted"
 	FieldEmail                            = "email"
 	AggregateTo                           = "aggregateTo"

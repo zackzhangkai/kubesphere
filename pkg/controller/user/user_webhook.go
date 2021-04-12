@@ -41,7 +41,6 @@ func (a *EmailValidator) Handle(ctx context.Context, req admission.Request) admi
 	allUsers := v1alpha2.UserList{}
 
 	err = a.Client.List(ctx, &allUsers, &client.ListOptions{})
-
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -51,7 +50,6 @@ func (a *EmailValidator) Handle(ctx context.Context, req admission.Request) admi
 	}
 
 	alreadyExist := emailAlreadyExist(allUsers, user)
-
 	if alreadyExist {
 		return admission.Errored(http.StatusConflict, fmt.Errorf("user email: %s already exists", user.Spec.Email))
 	}
@@ -61,7 +59,9 @@ func (a *EmailValidator) Handle(ctx context.Context, req admission.Request) admi
 
 func emailAlreadyExist(users v1alpha2.UserList, user *v1alpha2.User) bool {
 	for _, exist := range users.Items {
-		if exist.Spec.Email == user.Spec.Email && exist.Name != user.Name {
+		if exist.Spec.Email != "" &&
+			exist.Spec.Email == user.Spec.Email &&
+			exist.Name != user.Name {
 			return true
 		}
 	}

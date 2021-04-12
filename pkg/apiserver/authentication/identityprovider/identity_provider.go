@@ -17,6 +17,7 @@ limitations under the License.
 package identityprovider
 
 type Identity interface {
+	GetID() string
 	GetName() string
 	GetEmail() string
 }

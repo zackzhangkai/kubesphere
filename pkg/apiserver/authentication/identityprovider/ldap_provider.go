@@ -95,6 +95,10 @@ type ldapIdentity struct {
 	DisplayName string
 }
 
+func (l *ldapIdentity) GetID() string {
+	return l.Username
+}
+
 func (l *ldapIdentity) GetName() string {
 	return l.Username
 }

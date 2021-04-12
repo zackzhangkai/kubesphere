@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/emicklei/go-restful"
@@ -55,7 +56,7 @@ func (r *Registry) ImageManifest(image Image, token string) (*ImageManifest, err
 			log.Error(statusUnauthorized)
 			return nil, restful.NewError(resp.StatusCode, statusUnauthorized)
 		}
-		log.Error("got response: " + string(resp.StatusCode) + string(respBody))
+		log.Error("got response: " + strconv.Itoa(resp.StatusCode) + string(respBody))
 		return nil, restful.NewError(resp.StatusCode, "got image manifest failed")
 	}
 

@@ -20,6 +20,7 @@ package cas
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	gocas "github.com/go-cas/cas"
 	"github.com/mitchellh/mapstructure"
@@ -41,6 +42,11 @@ type cas struct {
 }
 type casIdentity struct {
 	User string `json:"user"`
+	ID   string `json:"id"`
+}
+
+func (c casIdentity) GetID() string {
+	return strings.ToLower(c.ID)
 }
 
 func (c casIdentity) GetName() string {
@@ -84,5 +90,18 @@ func (c cas) IdentityExchange(ticket string) (identityprovider.Identity, error) 
 		return nil, fmt.Errorf("cas authentication failed: %v", err)
 	}
 
-	return &casIdentity{User: casResponse.User}, nil
+	if len(casResponse.Attributes["userDetail"]) == 0 {
+		return nil, fmt.Errorf("cas authentication failed: %v", "missing required field \"userDetail\"")
+	}
+
+	var userDetail userDetail
+	if err = json.Unmarshal([]byte(casResponse.Attributes["userDetail"][0]), &userDetail); err != nil {
+		return nil, fmt.Errorf("cas authentication failed: %v", err)
+	}
+
+	return &casIdentity{ID: userDetail.Mobile, User: casResponse.User}, nil
+}
+
+type userDetail struct {
+	Mobile string `json:"mobile"`
 }

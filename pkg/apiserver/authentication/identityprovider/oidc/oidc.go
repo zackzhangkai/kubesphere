@@ -108,6 +108,10 @@ type oidcIdentity struct {
 	Email string `json:"email"`
 }
 
+func (o oidcIdentity) GetID() string {
+	return o.Sub
+}
+
 func (o oidcIdentity) GetName() string {
 	return o.Sub
 }
